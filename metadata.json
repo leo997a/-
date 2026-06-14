@@ -1,0 +1,6 @@
+{
+  "name": "صور رياكشن وردات فعل للصورة المصغرة",
+  "description": "توليد صور رياكشن مخصصة بالذكاء الاصطناعي مع الحفاظ التام على ملامح وهامش الهوية لصناع محتوى ميديا كرة القدم والميركاتو.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
