@@ -524,7 +524,8 @@ export default function App() {
   const [settingsKeys, setSettingsKeys] = useState<string>(() => localStorage.getItem('identityLockApiKeys') || '');
   const [errorModal, setErrorModal] = useState<{ title: string, message: string } | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [selectedModel, setSelectedModel] = useState<string>(() => localStorage.getItem('identityLockModel') || 'gemini-3.1-flash-image-preview');
+  const [selectedModel, setSelectedModel] = useState<string>(() => localStorage.getItem('identityLockModel') || 'gemini-3-pro-image-preview');
+  const [selectedImageSize, setSelectedImageSize] = useState<string>(() => localStorage.getItem('identityLockImageSize') || '1K');
   const [backgroundStyle, setBackgroundStyle] = useState<string>(() => localStorage.getItem('identityLockBgStyle') || 'bokeh');
   const [clothingColor, setClothingColor] = useState<string>(() => localStorage.getItem('identityLockClothingColor') || 'none');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -688,6 +689,7 @@ export default function App() {
   const handleSaveSettings = () => {
     localStorage.setItem('identityLockApiKeys', settingsKeys.trim());
     localStorage.setItem('identityLockModel', selectedModel);
+    localStorage.setItem('identityLockImageSize', selectedImageSize);
     localStorage.setItem('identityLockBgStyle', backgroundStyle);
     setShowSettings(false);
   };
@@ -989,7 +991,7 @@ export default function App() {
       // 2. Generate the actual image
       const imageResponse = await executeWithFailover(async (ai, currentApiKey) => {
         const isSystem = currentApiKey === process.env.GEMINI_API_KEY;
-        const primaryModel = isSystem ? 'gemini-2.5-flash-image' : selectedModel;
+        const primaryModel = selectedModel;
         
         const generateWithModel = async (modelName: string) => {
           return await ai.models.generateContent({
@@ -1006,7 +1008,8 @@ Apply the following scene prompt exactly: ${currentPrompt}` }
             },
             config: {
               imageConfig: {
-                aspectRatio: "3:4"
+                aspectRatio: "3:4",
+                ...(modelName.startsWith('gemini-3') ? { imageSize: selectedImageSize } : {})
               }
             }
           });
@@ -1579,32 +1582,96 @@ Apply the following scene prompt exactly: ${currentPrompt}` }
                 <label className="text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center justify-end">
                   <Sparkles size={14} className="ml-2 text-indigo-400" /> موديل توليد الصور المختار
                 </label>
-                <div className="grid grid-cols-2 gap-3 mt-1 text-center font-sans">
+                <div className="grid grid-cols-3 gap-3 mt-1 text-center font-sans">
                   <button
                     type="button"
-                    onClick={() => setSelectedModel('gemini-3.1-flash-image-preview')}
-                    className={`p-3 rounded-xl border text-sm font-medium transition-all flex flex-col items-center justify-center ${
-                      selectedModel === 'gemini-3.1-flash-image-preview'
+                    onClick={() => setSelectedModel('gemini-3-pro-image-preview')}
+                    className={`p-3 rounded-xl border text-xs font-medium transition-all flex flex-col items-center justify-center ${
+                      selectedModel === 'gemini-3-pro-image-preview'
                         ? 'border-indigo-500 bg-indigo-950/40 text-indigo-300 shadow-md shadow-indigo-500/10'
                         : 'border-slate-800 bg-[#0d111a]/80 text-slate-400 hover:border-slate-700 hover:bg-[#111622]'
                     }`}
                   >
-                    <span className="font-semibold text-xs text-slate-200">Gemini 3.1 Image</span>
-                    <span className="text-[10px] opacity-70 mt-1">جودة فائقة (يتطلب فوترة)</span>
+                    <span className="font-bold text-slate-200">Gemini 3 Pro</span>
+                    <span className="text-[10px] opacity-70 mt-1">الاحترافية القصوى</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedModel('gemini-3.1-flash-image')}
+                    className={`p-3 rounded-xl border text-xs font-medium transition-all flex flex-col items-center justify-center ${
+                      selectedModel === 'gemini-3.1-flash-image'
+                        ? 'border-indigo-500 bg-indigo-950/40 text-indigo-300 shadow-md shadow-indigo-500/10'
+                        : 'border-slate-800 bg-[#0d111a]/80 text-slate-400 hover:border-slate-700 hover:bg-[#111622]'
+                    }`}
+                  >
+                    <span className="font-bold text-slate-200">Gemini 3.1 Flash</span>
+                    <span className="text-[10px] opacity-70 mt-1">جودة فائقة وسريع</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedModel('gemini-2.5-flash-image')}
-                    className={`p-3 rounded-xl border text-sm font-medium transition-all flex flex-col items-center justify-center ${
+                    className={`p-3 rounded-xl border text-xs font-medium transition-all flex flex-col items-center justify-center ${
                       selectedModel === 'gemini-2.5-flash-image'
                         ? 'border-indigo-500 bg-indigo-950/40 text-indigo-300 shadow-md shadow-indigo-500/10'
                         : 'border-slate-800 bg-[#0d111a]/80 text-slate-400 hover:border-slate-700 hover:bg-[#111622]'
                     }`}
                   >
-                    <span className="font-semibold text-xs text-slate-200">Gemini 2.5 Image</span>
-                    <span className="text-[10px] opacity-70 mt-1">أسرع ومجاني للمفاتيح العادية</span>
+                    <span className="font-bold text-slate-200">Gemini 2.5 Image</span>
+                    <span className="text-[10px] opacity-70 mt-1">أسرع ومجاني عالي</span>
                   </button>
                 </div>
+              </div>
+
+              {/* Image Size / Resolution Selection Option */}
+              <div className="mb-6 space-y-2 text-right" dir="rtl">
+                <label className="text-xs font-semibold uppercase tracking-widest text-slate-400 flex items-center justify-end">
+                  <Palette size={14} className="ml-2 text-amber-400" /> دقة وحجم الصورة (Resolution)
+                </label>
+                <div className="grid grid-cols-3 gap-3 mt-1 text-center font-sans">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImageSize('1K')}
+                    className={`p-3 rounded-xl border text-xs font-medium transition-all flex flex-col items-center justify-center ${
+                      selectedImageSize === '1K'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-300 shadow-md shadow-amber-500/10'
+                        : 'border-slate-800 bg-[#0d111a]/80 text-slate-400 hover:border-slate-700 hover:bg-[#111622]'
+                    }`}
+                  >
+                    <span className="font-bold text-slate-200">1K Resolution</span>
+                    <span className="text-[10px] opacity-70 mt-1">1024px</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImageSize('2K')}
+                    disabled={!selectedModel.startsWith('gemini-3')}
+                    className={`p-3 rounded-xl border text-xs font-medium transition-all flex flex-col items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed ${
+                      selectedImageSize === '2K' && selectedModel.startsWith('gemini-3')
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-300 shadow-md shadow-amber-500/10'
+                        : 'border-slate-800 bg-[#0d111a]/80 text-slate-400 hover:border-slate-700 hover:bg-[#111622]'
+                    }`}
+                  >
+                    <span className="font-bold text-slate-200">2K Resolution</span>
+                    <span className="text-[10px] opacity-70 mt-1">2048px</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImageSize('4K')}
+                    disabled={!selectedModel.startsWith('gemini-3')}
+                    className={`p-3 rounded-xl border text-xs font-medium transition-all flex flex-col items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed ${
+                      selectedImageSize === '4K' && selectedModel.startsWith('gemini-3')
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-300 shadow-md shadow-amber-500/10'
+                        : 'border-slate-800 bg-[#0d111a]/80 text-slate-400 hover:border-slate-700 hover:bg-[#111622]'
+                    }`}
+                  >
+                    <span className="font-bold text-slate-200">4K Resolution</span>
+                    <span className="text-[10px] opacity-70 mt-1">4096px (فائق)</span>
+                  </button>
+                </div>
+                {!selectedModel.startsWith('gemini-3') && (
+                  <p className="text-[10px] text-amber-500/80 text-right mt-1 font-sans">
+                    ⚠️ دقة 2K و 4K مدعومة فقط في موديلات عائلة Gemini 3. تم تبديل الدقة المحددة تلقائياً إلى 1K.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
